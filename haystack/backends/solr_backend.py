@@ -529,6 +529,20 @@ class SolrSearchQuery(BaseSearchQuery):
         from haystack import connections
         query_frag = ''
 
+        # 'content' is a special reserved word, much like 'pk' in
+        # Django's ORM layer. It indicates 'no special field'.
+        if field == 'content':
+            index_fieldname = ''
+        else:
+            index_fieldname = u'%s:' % connections[self._using].get_unified_index().get_index_fieldname(field)
+            
+        if value is None:
+            # The filter is for a document field with the value of None.
+            # As an optimization, we wouldn't have stored that field on the document,
+            #  so we're really looking for documents without this field at all.
+            # Return solr's search filter for the empty fields
+            return '*:* -%s:[* TO *]' % index_fieldname
+            
         if not hasattr(value, 'input_type_name'):
             # Handle when we've got a ``ValuesListQuerySet``...
             if hasattr(value, 'values_list'):
@@ -546,20 +560,6 @@ class SolrSearchQuery(BaseSearchQuery):
         if not isinstance(prepared_value, (set, list, tuple)):
             # Then convert whatever we get back to what pysolr wants if needed.
             prepared_value = self.backend.conn._from_python(prepared_value)
-
-        # 'content' is a special reserved word, much like 'pk' in
-        # Django's ORM layer. It indicates 'no special field'.
-        if field == 'content':
-            index_fieldname = ''
-        else:
-            index_fieldname = u'%s:' % connections[self._using].get_unified_index().get_index_fieldname(field)
-
-        if value is None:
-            # The filter is for a document field with the value of None.
-            # As an optimization, we wouldn't have stored that field on the document,
-            #  so we're really looking for documents without this field at all.
-            # Return solr's search filter for the empty fields
-            return '*:* -%s:[* TO *]' % index_fieldname
 
         filter_types = {
             'contains': u'%s',
