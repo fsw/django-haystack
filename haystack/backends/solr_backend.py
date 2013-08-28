@@ -541,7 +541,7 @@ class SolrSearchQuery(BaseSearchQuery):
             # As an optimization, we wouldn't have stored that field on the document,
             #  so we're really looking for documents without this field at all.
             # Return solr's search filter for the empty fields
-            return '*:* -%s:[* TO *]' % index_fieldname
+            return '*:* -%s[* TO *]' % index_fieldname
             
         if not hasattr(value, 'input_type_name'):
             # Handle when we've got a ``ValuesListQuerySet``...
